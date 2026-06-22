@@ -28,6 +28,65 @@ func GetParameters(data []byte) (*Params, error)
 - Stripe‑based decoding processes 8 lines at a time, reducing memory pressure.
 - Output pixels are in native precision (8‑bit or 16‑bit), planar‑interleaved.
 
+## Installation
+
+```bash
+go get github.com/godicom-dev/golibjpeg
+```
+
+## Usage
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/godicom-dev/golibjpeg"
+)
+
+func main() {
+	data, err := os.ReadFile("image.jpg")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Decode with auto-detection of format
+	img, err := golibjpeg.Decode(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%dx%d, %d components, precision %d\n",
+		img.Width, img.Height, img.Components, img.Precision)
+
+	// img.Pixels is RGB bytes (or grayscale if source is grayscale)
+	// Process pixels as needed...
+	_ = img.Pixels
+}
+```
+
+With explicit format:
+
+```go
+import "github.com/godicom-dev/golibjpeg"
+
+// Force JPEG-LS decoding
+img, err := golibjpeg.DecodeWithFormat(data, golibjpeg.FormatJPEGLS)
+```
+
+Read image parameters without decoding pixels:
+
+```go
+params, err := golibjpeg.GetParameters(data)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("%dx%d, %d components, precision %d\n",
+	params.Width, params.Height, params.Components, params.Precision)
+```
+
 ## Platform support
 
 | OS      | amd64 | arm64 | 386 |
@@ -40,6 +99,25 @@ func GetParameters(data []byte) (*Params, error)
 
 - [ebitengine/purego](https://github.com/ebitengine/purego) – FFI without CGO
 - [thorfdbg/libjpeg](https://github.com/thorfdbg/libjpeg) – C++ JPEG library (ISO 10918‑1 / 18477)
+
+## Development
+
+```bash
+# Build native library for current platform
+make build-native
+
+# Run tests
+make test
+```
+
+Prebuilt native libraries (`.dll`/`.so`/`.dylib`) are stored in `native/libs/` and committed to git. On push to `main` affecting `_csrc/`, a CI workflow rebuilds all platform libraries and commits the result automatically.
+
+### Release workflow
+
+1. Make changes, push to `main`.
+2. CI rebuilds and commits native libraries to `native/libs/`.
+3. Create and push a tag: `git tag v1.0.1 && git push origin v1.0.1`.
+4. CI runs tests on all platforms, then attaches the built libraries to a GitHub Release.
 
 ## References
 

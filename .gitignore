@@ -1,9 +1,6 @@
 # --- Go ---
 *.exe
 *.exe~
-*.dll
-*.so
-*.dylib
 *.test
 *.out
 go.work
@@ -13,8 +10,7 @@ vendor/
 # Build artifacts
 _csrc/build/
 _csrc/build64/
-_csrc/build_x64.bat
-_csrc/build_x86.bat
+_csrc/build_nix/
 
 # IDE
 .idea/
