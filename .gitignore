@@ -1,0 +1,24 @@
+# --- Go ---
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+vendor/
+
+# Build artifacts
+_csrc/build/
+_csrc/build64/
+_csrc/build_x64.bat
+_csrc/build_x86.bat
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

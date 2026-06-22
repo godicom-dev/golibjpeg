@@ -1,0 +1,140 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-386
+            os: windows-latest
+            cmake-arch: Win32
+            cmake-generator: Visual Studio 17 2022
+            vcvars-arch: x86
+            embed-name: golibjpeg_386.dll
+            go-arch: 386
+
+          - name: windows-amd64
+            os: windows-latest
+            cmake-arch: x64
+            cmake-generator: Visual Studio 17 2022
+            vcvars-arch: amd64
+            embed-name: golibjpeg_amd64.dll
+            go-arch: amd64
+
+          - name: linux-amd64
+            os: ubuntu-24.04
+            cmake-arch: ""
+            cmake-generator: ""
+            embed-name: golibjpeg_linux_amd64.so
+            go-arch: amd64
+
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            cmake-arch: ""
+            cmake-generator: ""
+            embed-name: golibjpeg_linux_arm64.so
+            go-arch: arm64
+
+          - name: darwin-amd64
+            os: macos-13
+            cmake-arch: x86_64
+            cmake-generator: ""
+            embed-name: golibjpeg_darwin_amd64.dylib
+            go-arch: amd64
+
+          - name: darwin-arm64
+            os: macos-14
+            cmake-arch: arm64
+            cmake-generator: ""
+            embed-name: golibjpeg_darwin_arm64.dylib
+            go-arch: arm64
+
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: false
+
+      - name: Windows - CMake configure + build
+        if: runner.os == 'Windows'
+        run: |
+          cmake -S _csrc -B _csrc/build${{ matrix.cmake-arch }} `
+            -G "${{ matrix.cmake-generator }}" -A ${{ matrix.cmake-arch }}
+          cmake --build _csrc/build${{ matrix.cmake-arch }} --config Release
+
+      - name: Windows - copy embed
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p native/libs
+          cp _csrc/build${{ matrix.cmake-arch }}/Release/golibjpeg.dll native/libs/${{ matrix.embed-name }}
+
+      - name: Unix - CMake configure + build
+        if: runner.os != 'Windows'
+        run: |
+          cmake -S _csrc -B _csrc/build_nix \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          cmake --build _csrc/build_nix --config Release
+
+      - name: Unix - copy embed (linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p native/libs
+          cp _csrc/build_nix/libgolibjpeg.so native/libs/${{ matrix.embed-name }}
+
+      - name: Unix - copy embed (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p native/libs
+          cp _csrc/build_nix/libgolibjpeg.dylib native/libs/${{ matrix.embed-name }}
+
+      - name: Verify Go build
+        run: |
+          ls -la native/libs/
+          go build ./...
+
+      - name: Upload native library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.embed-name }}
+          path: native/libs/${{ matrix.embed-name }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: "*"
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          makeLatest: true
