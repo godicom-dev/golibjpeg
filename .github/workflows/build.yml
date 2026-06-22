@@ -67,8 +67,7 @@ jobs:
       - name: Windows - CMake configure + build
         if: runner.os == 'Windows'
         run: |
-          cmake -S _csrc -B _csrc/build${{ matrix.cmake-arch }} `
-            -G "${{ matrix.cmake-generator }}" -A ${{ matrix.cmake-arch }}
+          cmake -S _csrc -B _csrc/build${{ matrix.cmake-arch }} -G "${{ matrix.cmake-generator }}" -A ${{ matrix.cmake-arch }}
           cmake --build _csrc/build${{ matrix.cmake-arch }} --config Release
 
       - name: Windows - copy embed
