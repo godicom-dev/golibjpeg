@@ -11,11 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: windows-386
-            os: windows-latest
-            cmake-arch: Win32
-            cmake-generator: Visual Studio 17 2022
-            embed-name: golibjpeg_386.dll
           - name: windows-amd64
             os: windows-latest
             cmake-arch: x64

@@ -89,11 +89,11 @@ fmt.Printf("%dx%d, %d components, precision %d\n",
 
 ## Platform support
 
-| OS      | amd64 | arm64 | 386 |
-|---------|-------|-------|-----|
-| Windows | ✓     |       | ✓   |
-| macOS   | ✓     | ✓     |     |
-| Linux   | ✓     | ✓     |     |
+| OS      | amd64 | arm64 |
+|---------|-------|-------|
+| Windows | ✓     |       |
+| macOS   | ✓     | ✓     |
+| Linux   | ✓     | ✓     |
 
 ## Dependencies
 
