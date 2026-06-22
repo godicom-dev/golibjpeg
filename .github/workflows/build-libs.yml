@@ -13,28 +13,18 @@ jobs:
         include:
           - name: windows-amd64
             os: windows-latest
-            cmake-arch: x64
-            cmake-generator: Visual Studio 17 2022
             embed-name: golibjpeg_amd64.dll
           - name: linux-amd64
             os: ubuntu-24.04
-            cmake-arch: ""
-            cmake-generator: ""
             embed-name: golibjpeg_linux_amd64.so
           - name: linux-arm64
             os: ubuntu-24.04-arm
-            cmake-arch: ""
-            cmake-generator: ""
             embed-name: golibjpeg_linux_arm64.so
           - name: darwin-amd64
             os: macos-13
-            cmake-arch: x86_64
-            cmake-generator: ""
             embed-name: golibjpeg_darwin_amd64.dylib
           - name: darwin-arm64
             os: macos-14
-            cmake-arch: arm64
-            cmake-generator: ""
             embed-name: golibjpeg_darwin_arm64.dylib
 
     runs-on: ${{ matrix.os }}
@@ -45,17 +35,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Windows - setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Windows - CMake configure + build
         if: runner.os == 'Windows'
         run: |
-          cmake -S _csrc -B _csrc/build${{ matrix.cmake-arch }} -G "${{ matrix.cmake-generator }}" -A ${{ matrix.cmake-arch }}
-          cmake --build _csrc/build${{ matrix.cmake-arch }} --config Release
+          cmake -S _csrc -B _csrc/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build _csrc/build --config Release
 
       - name: Windows - copy
         if: runner.os == 'Windows'
         run: |
           mkdir -p native/libs
-          cp _csrc/build${{ matrix.cmake-arch }}/Release/golibjpeg.dll native/libs/${{ matrix.embed-name }}
+          cp _csrc/build/golibjpeg.dll native/libs/${{ matrix.embed-name }}
 
       - name: Unix - CMake configure + build
         if: runner.os != 'Windows'
