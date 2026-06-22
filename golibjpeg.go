@@ -1,6 +1,6 @@
 package golibjpeg
 
-import "gitee.com/ngmis/golibjpeg/native"
+import "github.com/godicom-dev/golibjpeg/native"
 
 type Image struct {
 	Pixels     []byte

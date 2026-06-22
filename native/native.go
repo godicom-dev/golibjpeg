@@ -7,7 +7,6 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
-	"golang.org/x/sys/windows"
 )
 
 var (
@@ -20,24 +19,29 @@ var (
 	freeFn func(p unsafe.Pointer)
 )
 
+func extractAndLoad(path string) (uintptr, error) {
+	if err := os.WriteFile(path, libData, 0755); err != nil {
+		return 0, err
+	}
+	handle, err := loadLibrary(path)
+	if err != nil {
+		return 0, err
+	}
+	if runtime.GOOS != "windows" {
+		os.Remove(path)
+	}
+	return handle, nil
+}
+
 func init() {
 	tmp := filepath.Join(os.TempDir(), "golibjpeg."+libExt())
-	if err := os.WriteFile(tmp, libData, 0755); err != nil {
-		panic("golibjpeg: failed to extract native library: " + err.Error())
-	}
-
-	handle, err := windows.LoadLibrary(tmp)
+	handle, err := extractAndLoad(tmp)
 	if err != nil {
 		panic("golibjpeg: failed to load native library: " + err.Error())
 	}
-
 	purego.RegisterLibFunc(&decodeFn, uintptr(handle), "golibjpeg_decode")
 	purego.RegisterLibFunc(&getParamsFn, uintptr(handle), "golibjpeg_get_parameters")
 	purego.RegisterLibFunc(&freeFn, uintptr(handle), "golibjpeg_free")
-
-	if runtime.GOOS != "windows" {
-		os.Remove(tmp)
-	}
 }
 
 func libExt() string {
