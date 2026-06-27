@@ -48,6 +48,8 @@ GOLIBJPEG_EXPORT int golibjpeg_get_parameters(
 
 GOLIBJPEG_EXPORT void golibjpeg_free(unsigned char* p);
 
+GOLIBJPEG_EXPORT const char* golibjpeg_last_error(void);
+
 #ifdef __cplusplus
 }
 #endif

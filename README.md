@@ -13,13 +13,28 @@ Supported formats:
 
 ## API
 
+Aligned with [pylibjpeg-libjpeg](https://github.com/pydicom/pylibjpeg-libjpeg) `libjpeg.utils`:
+
 ```go
+// Decode JPEG/JPEG-LS/JPEG XT (colour_transform matches Python default 0)
+func DecodeImage(stream any, colourTransform ColourTransform) (*Image, error)
+
+// Read parameters without decoding
+func GetImageParameters(stream any) (*Params, error)
+
+// DICOM encapsulated pixel data (pylibjpeg decode_pixel_data)
+func DecodePixelData(src []byte, opts PixelDataOptions) ([]byte, error)
+
+// Shorthands
 func Decode(data []byte) (*Image, error)
-func DecodeWithFormat(data []byte, format Format) (*Image, error)
 func GetParameters(data []byte) (*Params, error)
 ```
 
-`Format` constants: `FormatAuto`, `FormatJPEG`, `FormatJPEGLS`, `FormatJPEGXT`.
+`stream` may be `[]byte`, file path (`string`), or `io.Reader`.
+
+`ColourTransform` constants: `ColourTransformNone` (0), `ColourTransformYCbCr` (1), `ColourTransformRCT` (2), `ColourTransformFreeform` (3).
+
+No CGO: native code is loaded via `purego` + `//go:embed` prebuilt libraries.
 
 ## How it works
 
@@ -147,7 +162,12 @@ make build-native
 
 Committed files in `native/libs/` let `go get` work without a local CMake install.
 
-Reference tests (`reference_test.go`) align with `ref/pylibjpeg-libjpeg/libjpeg/tests/`; install conformance JPEGs as described in `testdata/README.md`.
+Reference tests (`reference_compliance_test.go`) mirror `ref/pylibjpeg-libjpeg/libjpeg/tests/test_parameters.py` and `test_decode.py` (`REF_JPG` table, 23 images). Fetch testdata before running:
+
+```bash
+bash scripts/fetch-testdata.sh
+go test ./...
+```
 
 ### Release workflow
 

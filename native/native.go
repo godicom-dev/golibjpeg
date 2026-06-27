@@ -17,6 +17,7 @@ var (
 	getParamsFn func(data unsafe.Pointer, dataLen int32,
 		width, height, components, precision *int32) int32
 	freeFn func(p unsafe.Pointer)
+	lastErrorFn func() uintptr
 )
 
 func extractAndLoad(path string) (uintptr, error) {
@@ -42,6 +43,14 @@ func init() {
 	purego.RegisterLibFunc(&decodeFn, uintptr(handle), "golibjpeg_decode")
 	purego.RegisterLibFunc(&getParamsFn, uintptr(handle), "golibjpeg_get_parameters")
 	purego.RegisterLibFunc(&freeFn, uintptr(handle), "golibjpeg_free")
+	registerOptionalLibFunc(uintptr(handle), "golibjpeg_last_error", &lastErrorFn)
+}
+
+func registerOptionalLibFunc(handle uintptr, name string, fn any) {
+	defer func() {
+		recover()
+	}()
+	purego.RegisterLibFunc(fn, handle, name)
 }
 
 func libExt() string {

@@ -46,7 +46,7 @@ func decode(data []byte, colourTransform int) (*DecodeResult, error) {
 		&precision,
 	)
 	if code != 0 {
-		return nil, errWithCode(code)
+		return nil, errWithCode("Decode()", code)
 	}
 
 	if outputPtr == nil || outputLen == 0 {
@@ -90,7 +90,7 @@ func GetParameters(data []byte) (*ImageParams, error) {
 		&precision,
 	)
 	if code != 0 {
-		return nil, errWithCode(code)
+		return nil, errWithCode("GetJPEGParameters()", code)
 	}
 
 	return &ImageParams{

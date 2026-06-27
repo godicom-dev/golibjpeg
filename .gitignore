@@ -7,6 +7,10 @@ go.work
 go.work.sum
 vendor/
 
+# Conformance JPEGs (fetched via scripts/fetch-testdata.sh)
+testdata/10918/
+testdata/14495/
+
 # Build artifacts
 lib/build/
 lib/build_nix/

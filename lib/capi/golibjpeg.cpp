@@ -6,7 +6,14 @@
 #include <cstring>
 #include <string>
 
+thread_local std::string g_golibjpeg_last_error;
+
 namespace {
+
+void set_last_error(const std::string& status)
+{
+    g_golibjpeg_last_error = status;
+}
 
 int parse_status_code(const std::string& status, int fallback)
 {
@@ -77,6 +84,7 @@ GOLIBJPEG_EXPORT int golibjpeg_get_parameters(
 
     const int code = map_interface_code(parse_status_code(status, GOLIBJPEG_ERR_DECODE));
     if (code != GOLIBJPEG_OK) {
+        set_last_error(status);
         return code;
     }
 
@@ -84,6 +92,7 @@ GOLIBJPEG_EXPORT int golibjpeg_get_parameters(
     *height = static_cast<int>(param.rows);
     *components = static_cast<int>(param.samples_per_pixel);
     *precision = static_cast<int>(param.bits_per_sample);
+    g_golibjpeg_last_error.clear();
     return GOLIBJPEG_OK;
 }
 
@@ -119,6 +128,7 @@ GOLIBJPEG_EXPORT int golibjpeg_decode(
 
     int code = map_interface_code(parse_status_code(status, GOLIBJPEG_ERR_DECODE));
     if (code != GOLIBJPEG_OK) {
+        set_last_error(status);
         return code;
     }
 
@@ -150,8 +160,11 @@ GOLIBJPEG_EXPORT int golibjpeg_decode(
     code = map_interface_code(parse_status_code(status, GOLIBJPEG_ERR_DECODE));
     if (code != GOLIBJPEG_OK) {
         std::free(out_buf);
+        set_last_error(status);
         return code;
     }
+
+    g_golibjpeg_last_error.clear();
 
     *output = out_buf;
     *output_len = out_len;
@@ -159,12 +172,18 @@ GOLIBJPEG_EXPORT int golibjpeg_decode(
     *height = static_cast<int>(param.rows);
     *components = static_cast<int>(param.samples_per_pixel);
     *precision = static_cast<int>(param.bits_per_sample);
+    g_golibjpeg_last_error.clear();
     return GOLIBJPEG_OK;
 }
 
 GOLIBJPEG_EXPORT void golibjpeg_free(unsigned char* p)
 {
     std::free(p);
+}
+
+GOLIBJPEG_EXPORT const char* golibjpeg_last_error(void)
+{
+    return g_golibjpeg_last_error.c_str();
 }
 
 } // extern "C"
