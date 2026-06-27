@@ -27,12 +27,8 @@ jobs:
             os: ubuntu-24.04-arm
             embed-name: golibjpeg_linux_arm64.so
             go-arch: arm64
-          - name: darwin-amd64
-            os: macos-13
-            embed-name: golibjpeg_darwin_amd64.dylib
-            go-arch: amd64
           - name: darwin-arm64
-            os: macos-14
+            os: macos-latest
             embed-name: golibjpeg_darwin_arm64.dylib
             go-arch: arm64
 

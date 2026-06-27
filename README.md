@@ -106,7 +106,7 @@ fmt.Printf("%dx%d, %d components, precision %d\n",
 | OS      | amd64 | arm64 |
 |---------|-------|-------|
 | Windows | ✓     |       |
-| macOS   | ✓     | ✓     |
+| macOS   |       | ✓     |
 | Linux   | ✓     | ✓     |
 
 ## Dependencies
