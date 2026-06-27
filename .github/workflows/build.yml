@@ -42,19 +42,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Build native library
+        uses: ./.github/actions/build-native
+        with:
+          embed-name: ${{ matrix.embed-name }}
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: false
-
-      - name: Verify prebuilt native library
-        run: |
-          test -f "native/libs/${{ matrix.embed-name }}" || {
-            echo "missing native/libs/${{ matrix.embed-name }}"
-            echo "push lib/** changes to main to trigger build-libs, or run workflow_dispatch on build-libs"
-            exit 1
-          }
 
       - name: Go test
         run: go test -v ./...

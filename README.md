@@ -140,8 +140,10 @@ make build-native
 
 | Workflow | Trigger | Action |
 |----------|---------|--------|
-| `build-libs.yml` | push `lib/**` to `main`, or manual | Build 5 platform libs → commit to `native/libs/` |
-| `build.yml` | push (except `lib/**`), PR, tags | `go test` using committed `native/libs/` |
+| `build-libs.yml` | push `lib/**` to `main`, or manual | Build 4 platform libs → commit to `native/libs/` |
+| `build.yml` | push (except `lib/**`), PR, tags | Build native lib on runner, then `go test` |
+
+`go test` needs `native/libs/*` at compile time (`//go:embed`). CI always builds the library into that path before testing. Committed files in `native/libs/` are updated by `build-libs` when native code changes, so `go get` works without a local CMake install.
 
 Reference tests (`reference_test.go`) align with `ref/pylibjpeg-libjpeg/libjpeg/tests/`; install conformance JPEGs as described in `testdata/README.md`.
 

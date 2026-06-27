@@ -6,6 +6,7 @@ on:
     paths:
       - "lib/**"
       - ".github/workflows/build-libs.yml"
+      - ".github/actions/build-native/**"
   workflow_dispatch:
 
 jobs:
@@ -37,41 +38,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Windows - setup MSVC
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Windows - CMake configure + build
-        if: runner.os == 'Windows'
-        run: |
-          cmake -S lib -B lib/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build lib/build --config Release
-
-      - name: Windows - copy
-        if: runner.os == 'Windows'
-        run: |
-          mkdir -p native/libs
-          cp lib/build/golibjpeg.dll native/libs/${{ matrix.embed-name }}
-
-      - name: Unix - CMake configure + build
-        if: runner.os != 'Windows'
-        run: |
-          cmake -S lib -B lib/build_nix \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-          cmake --build lib/build_nix --config Release
-
-      - name: Unix - copy (linux)
-        if: runner.os == 'Linux'
-        run: |
-          mkdir -p native/libs
-          cp lib/build_nix/libgolibjpeg.so native/libs/${{ matrix.embed-name }}
-
-      - name: Unix - copy (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          mkdir -p native/libs
-          cp lib/build_nix/libgolibjpeg.dylib native/libs/${{ matrix.embed-name }}
+      - name: Build native library
+        uses: ./.github/actions/build-native
+        with:
+          embed-name: ${{ matrix.embed-name }}
 
       - name: Upload
         uses: actions/upload-artifact@v4
