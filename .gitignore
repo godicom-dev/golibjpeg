@@ -10,6 +10,7 @@ vendor/
 # Conformance JPEGs (fetched via scripts/fetch-testdata.sh)
 testdata/10918/
 testdata/14495/
+testdata/dcm/
 
 # Build artifacts
 lib/build/
