@@ -41,10 +41,12 @@ file(GLOB LIBJPEG_SOURCES
     ${LIBJPEG_DIR}/std/*.cpp
     ${LIBJPEG_DIR}/tools/*.cpp
     ${LIBJPEG_DIR}/upsampling/*.cpp
-    ${LIBJPEG_DIR}/cmd/*.cpp
 )
 
-list(REMOVE_ITEM LIBJPEG_SOURCES ${LIBJPEG_DIR}/cmd/main.cpp)
+# Decode-only: interface uses OStreamHook + AlphaHook, not the CLI encoder.
+set(CMD_SOURCES
+    ${LIBJPEG_DIR}/cmd/bitmaphook.cpp
+)
 
 set(INTERFACE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/interface/decode.cpp
@@ -57,6 +59,7 @@ set(CAPI_SOURCES
 
 add_library(golibjpeg SHARED
     ${LIBJPEG_SOURCES}
+    ${CMD_SOURCES}
     ${INTERFACE_SOURCES}
     ${CAPI_SOURCES}
 )
