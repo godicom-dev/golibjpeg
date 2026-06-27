@@ -12,8 +12,8 @@ lib/
 
 ## Build
 
-CI (`build-libs.yml`) builds all platform libraries on push to `main` when `lib/**` changes,
-then commits artifacts to `native/libs/`.
+CI (`build.yml`) builds all platform libraries, commits them to `native/libs/` on
+push to `main`, then runs tests using the uploaded artifacts.
 
 Optional local build (debugging only):
 

@@ -138,18 +138,20 @@ make build-native
 
 ### CI workflows
 
-| Workflow | Trigger | Action |
-|----------|---------|--------|
-| `build-libs.yml` | push `lib/**` to `main`, or manual | Build 4 platform libs → commit to `native/libs/` |
-| `build.yml` | push (except `lib/**`), PR, tags | Build native lib on runner, then `go test` |
+`build.yml` runs in order:
 
-`go test` needs `native/libs/*` at compile time (`//go:embed`). CI always builds the library into that path before testing. Committed files in `native/libs/` are updated by `build-libs` when native code changes, so `go get` works without a local CMake install.
+1. **build-native** — build shared library on 4 platforms, upload artifacts  
+2. **commit-native** — on push to `main`, write artifacts into `native/libs/` and commit  
+3. **test** — download artifact per platform, then `go test`  
+4. **release** — on `v*` tags, attach libraries to GitHub Release  
+
+Committed files in `native/libs/` let `go get` work without a local CMake install.
 
 Reference tests (`reference_test.go`) align with `ref/pylibjpeg-libjpeg/libjpeg/tests/`; install conformance JPEGs as described in `testdata/README.md`.
 
 ### Release workflow
 
-1. Merge changes to `main` (if `lib/**` changed, wait for `build-libs` to commit updated `native/libs/`).
+1. Merge changes to `main` and wait for `build` workflow (build → commit `native/libs/` → test).
 2. `build` workflow runs `go test` on all platforms using embedded libs.
 3. Create and push a tag: `git tag v1.0.1 && git push origin v1.0.1`.
 4. CI attaches the committed libraries from `native/libs/` to a GitHub Release.
