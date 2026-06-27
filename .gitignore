@@ -8,13 +8,13 @@ go.work.sum
 vendor/
 
 # Build artifacts
-_csrc/build/
-_csrc/build64/
-_csrc/build_nix/
+lib/build/
+lib/build_nix/
 
-# IDE
+# IDE / OS
 .idea/
 .vscode/
+.DS_Store
 *.swp
 *.swo
 *~

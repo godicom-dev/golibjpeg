@@ -3,7 +3,7 @@ name: build
 on:
   push:
     branches: [main]
-    paths-ignore: ["_csrc/**"]
+    paths-ignore: ["lib/**"]
     tags: ["v*"]
   pull_request:
     branches: [main]
@@ -43,6 +43,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -50,41 +52,13 @@ jobs:
           go-version: "1.26"
           cache: false
 
-      - name: Windows - setup MSVC
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Windows - CMake configure + build
-        if: runner.os == 'Windows'
+      - name: Verify prebuilt native library
         run: |
-          cmake -S _csrc -B _csrc/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build _csrc/build --config Release
-
-      - name: Windows - copy embed
-        if: runner.os == 'Windows'
-        run: |
-          mkdir -p native/libs
-          cp _csrc/build/golibjpeg.dll native/libs/${{ matrix.embed-name }}
-
-      - name: Unix - CMake configure + build
-        if: runner.os != 'Windows'
-        run: |
-          cmake -S _csrc -B _csrc/build_nix \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-          cmake --build _csrc/build_nix --config Release
-
-      - name: Unix - copy (linux)
-        if: runner.os == 'Linux'
-        run: |
-          mkdir -p native/libs
-          cp _csrc/build_nix/libgolibjpeg.so native/libs/${{ matrix.embed-name }}
-
-      - name: Unix - copy (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          mkdir -p native/libs
-          cp _csrc/build_nix/libgolibjpeg.dylib native/libs/${{ matrix.embed-name }}
+          test -f "native/libs/${{ matrix.embed-name }}" || {
+            echo "missing native/libs/${{ matrix.embed-name }}"
+            echo "push lib/** changes to main to trigger build-libs, or run workflow_dispatch on build-libs"
+            exit 1
+          }
 
       - name: Go test
         run: go test -v ./...

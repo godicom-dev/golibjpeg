@@ -3,7 +3,10 @@ name: build-libs
 on:
   push:
     branches: [main]
-    paths: ["_csrc/**"]
+    paths:
+      - "lib/**"
+      - ".github/workflows/build-libs.yml"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -34,6 +37,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Windows - setup MSVC
         if: runner.os == 'Windows'
@@ -42,34 +47,34 @@ jobs:
       - name: Windows - CMake configure + build
         if: runner.os == 'Windows'
         run: |
-          cmake -S _csrc -B _csrc/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build _csrc/build --config Release
+          cmake -S lib -B lib/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build lib/build --config Release
 
       - name: Windows - copy
         if: runner.os == 'Windows'
         run: |
           mkdir -p native/libs
-          cp _csrc/build/golibjpeg.dll native/libs/${{ matrix.embed-name }}
+          cp lib/build/golibjpeg.dll native/libs/${{ matrix.embed-name }}
 
       - name: Unix - CMake configure + build
         if: runner.os != 'Windows'
         run: |
-          cmake -S _csrc -B _csrc/build_nix \
+          cmake -S lib -B lib/build_nix \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-          cmake --build _csrc/build_nix --config Release
+          cmake --build lib/build_nix --config Release
 
       - name: Unix - copy (linux)
         if: runner.os == 'Linux'
         run: |
           mkdir -p native/libs
-          cp _csrc/build_nix/libgolibjpeg.so native/libs/${{ matrix.embed-name }}
+          cp lib/build_nix/libgolibjpeg.so native/libs/${{ matrix.embed-name }}
 
       - name: Unix - copy (macOS)
         if: runner.os == 'macOS'
         run: |
           mkdir -p native/libs
-          cp _csrc/build_nix/libgolibjpeg.dylib native/libs/${{ matrix.embed-name }}
+          cp lib/build_nix/libgolibjpeg.dylib native/libs/${{ matrix.embed-name }}
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -84,17 +89,22 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           pattern: "*"
           merge-multiple: true
 
-      - run: |
+      - name: Update native/libs
+        run: |
           mkdir -p native/libs
           cp artifacts/* native/libs/
+          ls -la native/libs/
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "update prebuilt native libraries"
+          commit_message: "ci: update prebuilt native libraries"
           file_pattern: native/libs/*

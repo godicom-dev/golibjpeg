@@ -17,20 +17,22 @@ endif
 
 .PHONY: build-native
 build-native: ## build native library for the current host
-	cmake -S _csrc -B _csrc/build \
+	git submodule update --init --recursive lib/libjpeg
+	cmake -S lib -B lib/build \
 	  -DCMAKE_BUILD_TYPE=Release \
 	  -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-	cmake --build _csrc/build --config Release
+	cmake --build lib/build --config Release
 	mkdir -p native/libs
-	cp _csrc/build/libgolibjpeg.* native/libs/
+	cp lib/build/libgolibjpeg.* native/libs/
 
 .PHONY: build-native-win
 build-native-win: ## build native DLL on Windows with MSVC
-	cmake -S _csrc -B _csrc/build \
+	git submodule update --init --recursive lib/libjpeg
+	cmake -S lib -B lib/build \
 	  -G "Visual Studio 17 2022" -A $(CMAKE_ARCH_$(GOHOSTARCH))
-	cmake --build _csrc/build --config Release
+	cmake --build lib/build --config Release
 	mkdir -p native/libs
-	cp _csrc/build/Release/golibjpeg.dll native/libs/golibjpeg_$(GOHOSTARCH).dll
+	cp lib/build/Release/golibjpeg.dll native/libs/golibjpeg_$(GOHOSTARCH).dll
 
 .PHONY: test
 test: ## run Go tests
@@ -38,7 +40,7 @@ test: ## run Go tests
 
 .PHONY: clean
 clean: ## remove build artifacts
-	rm -rf _csrc/build _csrc/build_nix
+	rm -rf lib/build lib/build_nix
 
 .PHONY: tidy
 tidy: ## tidy Go module

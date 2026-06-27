@@ -1,0 +1,6 @@
+[submodule "ref/pylibjpeg-libjpeg"]
+	path = ref/pylibjpeg-libjpeg
+	url = https://github.com/pydicom/pylibjpeg-libjpeg.git
+[submodule "lib/libjpeg"]
+	path = lib/libjpeg
+	url = https://github.com/thorfdbg/libjpeg.git
