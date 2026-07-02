@@ -1,6 +1,6 @@
 module github.com/godicom-dev/golibjpeg
 
-go 1.26.2
+go 1.26
 
 require (
 	github.com/ebitengine/purego v0.10.1
