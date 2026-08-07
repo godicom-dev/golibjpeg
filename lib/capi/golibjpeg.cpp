@@ -1,6 +1,7 @@
 #include "golibjpeg.h"
 
 #include "../interface/decode.hpp"
+#include "../interface/encode.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -173,6 +174,67 @@ GOLIBJPEG_EXPORT int golibjpeg_decode(
     *components = static_cast<int>(param.samples_per_pixel);
     *precision = static_cast<int>(param.bits_per_sample);
     g_golibjpeg_last_error.clear();
+    return GOLIBJPEG_OK;
+}
+
+GOLIBJPEG_EXPORT int golibjpeg_encode(
+    const unsigned char* src,
+    int src_len,
+    const golibjpeg_encode_params* params,
+    unsigned char** output,
+    int* output_len)
+{
+    if (src == nullptr || src_len <= 0 || params == nullptr || output == nullptr ||
+        output_len == nullptr) {
+        return GOLIBJPEG_ERR_PARAM;
+    }
+
+    *output = nullptr;
+    *output_len = 0;
+
+    if (params->columns <= 0 || params->rows <= 0 || params->samples_per_pixel <= 0 ||
+        params->bits_per_sample <= 0) {
+        return GOLIBJPEG_ERR_PARAM;
+    }
+
+    if (params->colour_transform < 0 || params->colour_transform > 3) {
+        return GOLIBJPEG_ERR_PARAM;
+    }
+
+    EncodeParameters enc = {};
+    enc.columns = static_cast<unsigned int>(params->columns);
+    enc.rows = static_cast<unsigned int>(params->rows);
+    enc.samples_per_pixel = static_cast<unsigned int>(params->samples_per_pixel);
+    enc.bits_per_sample = static_cast<unsigned int>(params->bits_per_sample);
+    enc.frame_type = params->frame_type;
+    enc.colour_transform = params->colour_transform;
+    enc.quality = params->quality;
+    enc.error_bound = params->error_bound;
+    enc.ls_interleaving = params->ls_interleaving;
+
+    char* out_buf = nullptr;
+    int out_len = 0;
+    const std::string status = Encode(
+        const_cast<char*>(reinterpret_cast<const char*>(src)),
+        src_len,
+        &enc,
+        &out_buf,
+        &out_len
+    );
+
+    const int code = map_interface_code(parse_status_code(status, GOLIBJPEG_ERR_ENCODE));
+    if (code != GOLIBJPEG_OK) {
+        set_last_error(status);
+        return code;
+    }
+
+    if (out_buf == nullptr || out_len <= 0) {
+        return GOLIBJPEG_ERR_ENCODE;
+    }
+
+    g_golibjpeg_last_error.clear();
+    *output = reinterpret_cast<unsigned char*>(out_buf);
+    *output_len = out_len;
     return GOLIBJPEG_OK;
 }
 

@@ -1,0 +1,24 @@
+--- a/marker/scan.cpp
++++ b/marker/scan.cpp
+@@ -672,11 +672,16 @@ void Scan::InstallDefaults(UBYTE depth,ULONG tagoffset,const struct JPG_TagItem
+   for(UBYTE i = 0;i < depth;i++) {
+     UBYTE c = m_ucComponent[i]; // get the component.
+ 
+-    m_ucDCTable[i] = m_pFrame->TablesOf()->QuantizationTableIndexOf(c,/*ishuffman &&*/ colortrafo);
+-    //
+-    // AC coding not required for predictive.
+-    m_ucACTable[i] = m_pFrame->TablesOf()->QuantizationTableIndexOf(c,/*ishuffman &&*/ !ispredictive && colortrafo);
+-  } 
++    if (ispredictive || isjpegls) {
++      m_ucDCTable[i] = 0;
++      m_ucACTable[i] = 0;
++    } else {
++      m_ucDCTable[i] = m_pFrame->TablesOf()->QuantizationTableIndexOf(c,/*ishuffman &&*/ colortrafo);
++      //
++      // AC coding not required for predictive.
++      m_ucACTable[i] = m_pFrame->TablesOf()->QuantizationTableIndexOf(c,/*ishuffman &&*/ !ispredictive && colortrafo);
++    }
++  }
+   //
+   // Install and check the scan parameters for the progressive scan.
+   switch(type) {
