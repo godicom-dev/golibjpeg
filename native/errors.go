@@ -10,6 +10,8 @@ var errEmptyInput = fmt.Errorf("golibjpeg: empty input data")
 
 var errEmptyOutput = fmt.Errorf("golibjpeg: decode returned empty output")
 
+var errEmptyEncodeOutput = fmt.Errorf("golibjpeg: encode returned empty output")
+
 func errWithCode(op string, code int32) error {
 	detail := lastErrorDetail()
 	if detail != "" {

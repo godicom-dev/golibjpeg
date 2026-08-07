@@ -1,15 +1,15 @@
 # golibjpeg
 
-Go JPEG decoder — baseline JPEG, JPEG-LS, JPEG XT. No CGO dependency.
+Go JPEG codec — baseline JPEG, JPEG-LS, JPEG XT decode; JPEG / JPEG-LS encode. No CGO dependency.
 
 ## Overview
 
-`golibjpeg` is a Go library for decoding JPEG images with native precision (8‑bit and 16‑bit). It bundles a platform-specific shared library extracted at runtime via FFI (`ebitengine/purego`), avoiding the need for CGO.
+`golibjpeg` is a Go library for decoding and encoding JPEG images with native precision (8‑bit and 16‑bit). It bundles a platform-specific shared library extracted at runtime via FFI (`ebitengine/purego`), avoiding the need for CGO.
 
 Supported formats:
-- **JPEG** (ISO 10918‑1, baseline)
-- **JPEG‑LS** (ISO 14495)
-- **JPEG XT** (ISO 18477, HDR)
+- **JPEG** (ISO 10918‑1, baseline / lossless)
+- **JPEG‑LS** (ISO 14495, lossless / near‑lossless)
+- **JPEG XT** (ISO 18477, HDR — decode only)
 
 ## API
 
@@ -19,11 +19,15 @@ Aligned with [pylibjpeg-libjpeg](https://github.com/pydicom/pylibjpeg-libjpeg) `
 // Decode JPEG/JPEG-LS/JPEG XT (colour_transform matches Python default 0)
 func DecodeImage(stream any, colourTransform ColourTransform) (*Image, error)
 
+// Encode interleaved little-endian pixels to JPEG / JPEG-LS
+func Encode(src []byte, opts EncodeOptions) ([]byte, error)
+
+// DICOM encapsulated pixel data
+func DecodePixelData(src []byte, opts PixelDataOptions) ([]byte, error)
+func EncodePixelData(src []byte, desc PixelDataDescriptor, opts EncodePixelDataOptions) ([]byte, error)
+
 // Read parameters without decoding
 func GetImageParameters(stream any) (*Params, error)
-
-// DICOM encapsulated pixel data (pylibjpeg decode_pixel_data)
-func DecodePixelData(src []byte, opts PixelDataOptions) ([]byte, error)
 
 // Shorthands
 func Decode(data []byte) (*Image, error)
@@ -103,6 +107,25 @@ import "github.com/godicom-dev/golibjpeg"
 
 // Force JPEG-LS decoding
 img, err := golibjpeg.DecodeWithFormat(data, golibjpeg.FormatJPEGLS)
+```
+
+Encode to JPEG baseline:
+
+```go
+out, err := golibjpeg.Encode(pixels, golibjpeg.EncodeOptions{
+	Columns: 512, Rows: 512, SamplesPerPixel: 3, BitsPerSample: 8,
+	FrameType: golibjpeg.FrameBaseline, ColourTransform: golibjpeg.ColourTransformYCbCr,
+	Quality: 90,
+})
+```
+
+JPEG-LS lossless:
+
+```go
+out, err := golibjpeg.Encode(frame, golibjpeg.EncodeOptions{
+	Columns: 512, Rows: 512, SamplesPerPixel: 1, BitsPerSample: 16,
+	FrameType: golibjpeg.FrameJPEGLS, LSInterleaving: golibjpeg.LSInterleaveSample,
+})
 ```
 
 Read image parameters without decoding pixels:

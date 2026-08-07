@@ -13,6 +13,8 @@ var (
 		colourTransform int32,
 		output *unsafe.Pointer, outputLen *int32,
 		width, height, components, precision *int32) int32
+	encodeFn func(src unsafe.Pointer, srcLen int32, params unsafe.Pointer,
+		output *unsafe.Pointer, outputLen *int32) int32
 	getParamsFn func(data unsafe.Pointer, dataLen int32,
 		width, height, components, precision *int32) int32
 	freeFn func(p unsafe.Pointer)
@@ -46,6 +48,7 @@ func init() {
 		panic("golibjpeg: failed to load native library: " + err.Error())
 	}
 	purego.RegisterLibFunc(&decodeFn, uintptr(handle), "golibjpeg_decode")
+	purego.RegisterLibFunc(&encodeFn, uintptr(handle), "golibjpeg_encode")
 	purego.RegisterLibFunc(&getParamsFn, uintptr(handle), "golibjpeg_get_parameters")
 	purego.RegisterLibFunc(&freeFn, uintptr(handle), "golibjpeg_free")
 	registerOptionalLibFunc(uintptr(handle), "golibjpeg_last_error", &lastErrorFn)

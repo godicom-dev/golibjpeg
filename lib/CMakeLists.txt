@@ -20,6 +20,25 @@ endif()
 
 set(LIBJPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg)
 
+# Upstream libjpeg: lossless/JPEG-LS encode must not require DQT tables in Scan::InstallDefaults.
+set(LIBJPEG_PATCH ${CMAKE_CURRENT_SOURCE_DIR}/patches/scan-lossless-encode.patch)
+if(EXISTS ${LIBJPEG_PATCH})
+    find_program(PATCH_EXECUTABLE patch)
+    if(PATCH_EXECUTABLE)
+        execute_process(
+            COMMAND ${PATCH_EXECUTABLE} -p1 -N -i ${LIBJPEG_PATCH}
+            WORKING_DIRECTORY ${LIBJPEG_DIR}
+            RESULT_VARIABLE PATCH_RESULT
+            ERROR_VARIABLE PATCH_ERROR
+        )
+        if(NOT PATCH_RESULT EQUAL 0)
+            message(WARNING "libjpeg patch may already be applied: ${PATCH_ERROR}")
+        endif()
+    else()
+        message(WARNING "patch not found; lossless encode may fail without lib/libjpeg/marker/scan.cpp fix")
+    endif()
+endif()
+
 add_definitions(-DACCUSOFT_CODE=1 -DISO_CODE=1)
 add_definitions(-DCHECK_LEVEL=0 -DDEBUG_LEVEL=0 -DBUILD_LIB)
 
@@ -43,13 +62,14 @@ file(GLOB LIBJPEG_SOURCES
     ${LIBJPEG_DIR}/upsampling/*.cpp
 )
 
-# Decode-only: interface uses OStreamHook + AlphaHook, not the CLI encoder.
+# Decode uses OStreamHook; encode uses BitmapHook + in-memory IO hook.
 set(CMD_SOURCES
     ${LIBJPEG_DIR}/cmd/bitmaphook.cpp
 )
 
 set(INTERFACE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/interface/decode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/interface/encode.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/interface/streamhook.cpp
 )
 
