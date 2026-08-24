@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           for target in \
-            darwin/amd64 windows/arm64 windows/386 \
+            windows/arm64 windows/386 \
             linux/386 linux/arm linux/riscv64 linux/ppc64le \
             js/wasm wasip1/wasm; do
             echo "== $target"
@@ -57,6 +57,14 @@ jobs:
           - name: darwin-arm64
             os: macos-latest
             embed-name: golibjpeg_darwin_arm64.dylib
+          # Cross-compiled on the same arm64 runner: Apple's clang targets both
+          # architectures, so this needs no x86_64 hardware. Thin rather than a
+          # universal dylib, because //go:embed puts whatever is here into every
+          # user's binary and a universal file would double that for both Macs.
+          - name: darwin-amd64
+            os: macos-latest
+            embed-name: golibjpeg_darwin_amd64.dylib
+            osx-architectures: x86_64
 
     runs-on: ${{ matrix.os }}
     defaults:
@@ -72,6 +80,7 @@ jobs:
         uses: ./.github/actions/build-native
         with:
           embed-name: ${{ matrix.embed-name }}
+          osx-architectures: ${{ matrix.osx-architectures }}
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
@@ -117,16 +126,27 @@ jobs:
         include:
           - name: windows-amd64
             os: windows-latest
+            goarch: amd64
             embed-name: golibjpeg_amd64.dll
           - name: linux-amd64
             os: ubuntu-24.04
+            goarch: amd64
             embed-name: golibjpeg_linux_amd64.so
           - name: linux-arm64
             os: ubuntu-24.04-arm
+            goarch: arm64
             embed-name: golibjpeg_linux_arm64.so
           - name: darwin-arm64
             os: macos-latest
+            goarch: arm64
             embed-name: golibjpeg_darwin_arm64.dylib
+          # The runner is arm64, so this compiles amd64 test binaries and leans
+          # on Rosetta 2 to run them. The alternative is shipping a library no
+          # test ever loads.
+          - name: darwin-amd64
+            os: macos-latest
+            goarch: amd64
+            embed-name: golibjpeg_darwin_amd64.dylib
 
     runs-on: ${{ matrix.os }}
     defaults:
@@ -157,6 +177,8 @@ jobs:
         run: bash scripts/fetch-testdata.sh
 
       - name: Go test
+        env:
+          GOARCH: ${{ matrix.goarch }}
         run: go test -v ./...
 
   release:

@@ -5,6 +5,14 @@ inputs:
   embed-name:
     description: Output filename under native/libs/
     required: true
+  osx-architectures:
+    description: >
+      CMAKE_OSX_ARCHITECTURES for a macOS build, e.g. x86_64. Empty means build
+      for the runner's own architecture. Apple's clang cross-compiles between
+      arm64 and x86_64 out of the box, so one arm64 runner produces both thin
+      dylibs.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -30,10 +38,20 @@ runs:
     - name: Unix - CMake configure + build
       if: runner.os != 'Windows'
       shell: bash
+      env:
+        OSX_ARCHITECTURES: ${{ inputs.osx-architectures }}
       run: |
-        cmake -S lib -B lib/build_nix \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        set -euo pipefail
+        # Built as an array rather than a string so the arch flag can be omitted
+        # entirely; it is never empty, which keeps `set -u` happy on the bash 3.2
+        # that ships with macOS.
+        args=(-S lib -B lib/build_nix
+              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+        if [ -n "$OSX_ARCHITECTURES" ]; then
+          args+=(-DCMAKE_OSX_ARCHITECTURES="$OSX_ARCHITECTURES")
+        fi
+        cmake "${args[@]}"
         cmake --build lib/build_nix --config Release
 
     - name: Unix - copy (linux)
@@ -49,3 +67,18 @@ runs:
       run: |
         mkdir -p native/libs
         cp lib/build_nix/libgolibjpeg.dylib "native/libs/${{ inputs.embed-name }}"
+
+    # A cross-compiled dylib that silently came out as the host architecture
+    # would load nowhere and would not be caught until someone ran it, so check
+    # the file rather than trusting the flag.
+    - name: macOS - verify the architecture
+      if: runner.os == 'macOS'
+      shell: bash
+      env:
+        OSX_ARCHITECTURES: ${{ inputs.osx-architectures }}
+      run: |
+        set -euo pipefail
+        lib="native/libs/${{ inputs.embed-name }}"
+        lipo -info "$lib"
+        want="${OSX_ARCHITECTURES:-$(uname -m)}"
+        lipo -info "$lib" | grep -qw "$want"

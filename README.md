@@ -144,7 +144,7 @@ fmt.Printf("%dx%d, %d components, precision %d\n",
 | OS      | amd64 | arm64 |
 |---------|-------|-------|
 | Windows | ✓     |       |
-| macOS   |       | ✓     |
+| macOS   | ✓     | ✓     |
 | Linux   | ✓     | ✓     |
 
 Anywhere else this module still **builds** — it just cannot decode or encode.
@@ -159,9 +159,10 @@ if errors.Is(err, golibjpeg.ErrUnsupportedPlatform) {
 }
 ```
 
-The `cross-build` CI job compiles the module for every platform in the second
-group, so this stays true. Loading is lazy and never panics: a read-only or
-`noexec` `TMPDIR` also surfaces as an error from the first call.
+The `cross-build` CI job compiles the module for a spread of platforms outside
+the table — `js/wasm` and `wasip1/wasm` among them — so this stays true. Loading
+is lazy and never panics: a read-only or `noexec` `TMPDIR` also surfaces as an
+error from the first call.
 
 ## Dependencies
 
@@ -192,10 +193,10 @@ make build-native
 
 ### CI workflows
 
-`build.yml` runs **cross-build** — compile for 9 platforms with no prebuilt
+`build.yml` runs **cross-build** — compile for 8 platforms with no prebuilt
 library — on its own, plus this chain in order:
 
-1. **build-native** — build shared library on 4 platforms, upload artifacts  
+1. **build-native** — build shared library on 5 platforms, upload artifacts  
 2. **commit-native** — on push to `main`, write artifacts into `native/libs/` and commit  
 3. **test** — download artifact per platform, then `go test`  
 4. **release** — on `v*` tags, attach libraries to GitHub Release  
