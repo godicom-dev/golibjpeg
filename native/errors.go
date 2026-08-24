@@ -1,10 +1,16 @@
 package native
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 )
+
+// ErrUnsupportedPlatform reports that this GOOS/GOARCH has no prebuilt native
+// library, so nothing can be decoded or encoded. Every entry point wraps it,
+// and the wrapped error names the platform. Test for it with errors.Is.
+var ErrUnsupportedPlatform = errors.New("golibjpeg: no prebuilt native library for this platform")
 
 var errEmptyInput = fmt.Errorf("golibjpeg: empty input data")
 

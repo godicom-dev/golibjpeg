@@ -147,6 +147,22 @@ fmt.Printf("%dx%d, %d components, precision %d\n",
 | macOS   |       | ✓     |
 | Linux   | ✓     | ✓     |
 
+Anywhere else this module still **builds** — it just cannot decode or encode.
+Every function returns an error wrapping `ErrUnsupportedPlatform` instead, so a
+program that imports `golibjpeg` (or `godicom`, which does) keeps compiling and
+running on a platform with no prebuilt library, and only JPEG and JPEG-LS fail:
+
+```go
+img, err := golibjpeg.Decode(data)
+if errors.Is(err, golibjpeg.ErrUnsupportedPlatform) {
+	// no library for this GOOS/GOARCH; err names which one
+}
+```
+
+The `cross-build` CI job compiles the module for every platform in the second
+group, so this stays true. Loading is lazy and never panics: a read-only or
+`noexec` `TMPDIR` also surfaces as an error from the first call.
+
 ## Dependencies
 
 - [ebitengine/purego](https://github.com/ebitengine/purego) – FFI without CGO
@@ -176,7 +192,8 @@ make build-native
 
 ### CI workflows
 
-`build.yml` runs in order:
+`build.yml` runs **cross-build** — compile for 9 platforms with no prebuilt
+library — on its own, plus this chain in order:
 
 1. **build-native** — build shared library on 4 platforms, upload artifacts  
 2. **commit-native** — on push to `main`, write artifacts into `native/libs/` and commit  

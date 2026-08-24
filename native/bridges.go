@@ -16,10 +16,10 @@ const (
 	CTRCT      = 2
 	CTFreeform = 3
 
-	FrameBaseline    = 0
-	FrameSequential  = 1
-	FrameLossless    = 3
-	FrameJPEGLS      = 4
+	FrameBaseline   = 0
+	FrameSequential = 1
+	FrameLossless   = 3
+	FrameJPEGLS     = 4
 
 	LSInterleaveNone   = 0
 	LSInterleaveLine   = 1
@@ -35,6 +35,9 @@ func Decode(data []byte, colourTransform int) (*DecodeResult, error) {
 }
 
 func decode(data []byte, colourTransform int) (*DecodeResult, error) {
+	if err := ensureLoaded(); err != nil {
+		return nil, err
+	}
 	if len(data) == 0 {
 		return nil, errEmptyInput
 	}
@@ -84,6 +87,9 @@ type ImageParams struct {
 }
 
 func GetParameters(data []byte) (*ImageParams, error) {
+	if err := ensureLoaded(); err != nil {
+		return nil, err
+	}
 	if len(data) == 0 {
 		return nil, errEmptyInput
 	}
@@ -123,6 +129,9 @@ type EncodeParams struct {
 }
 
 func Encode(src []byte, params EncodeParams) ([]byte, error) {
+	if err := ensureLoaded(); err != nil {
+		return nil, err
+	}
 	if len(src) == 0 {
 		return nil, errEmptyInput
 	}
