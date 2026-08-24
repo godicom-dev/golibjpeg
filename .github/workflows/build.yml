@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           for target in \
-            windows/arm64 windows/386 \
+            windows/386 \
             linux/386 linux/arm linux/riscv64 linux/ppc64le \
             js/wasm wasip1/wasm; do
             echo "== $target"
@@ -47,7 +47,14 @@ jobs:
         include:
           - name: windows-amd64
             os: windows-latest
+            msvc-arch: x64
             embed-name: golibjpeg_amd64.dll
+          # Cross-compiled with MSVC's x64-hosted ARM64 toolchain, so the build
+          # needs no arm64 runner. The test job below does use one.
+          - name: windows-arm64
+            os: windows-latest
+            msvc-arch: amd64_arm64
+            embed-name: golibjpeg_arm64.dll
           - name: linux-amd64
             os: ubuntu-24.04
             embed-name: golibjpeg_linux_amd64.so
@@ -81,6 +88,7 @@ jobs:
         with:
           embed-name: ${{ matrix.embed-name }}
           osx-architectures: ${{ matrix.osx-architectures }}
+          msvc-arch: ${{ matrix.msvc-arch }}
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
@@ -128,6 +136,12 @@ jobs:
             os: windows-latest
             goarch: amd64
             embed-name: golibjpeg_amd64.dll
+          # A real arm64 Windows runner, so this is a native run rather than a
+          # cross-build check: purego'''s Windows ARM64 path is exercised for real.
+          - name: windows-arm64
+            os: windows-11-arm
+            goarch: arm64
+            embed-name: golibjpeg_arm64.dll
           - name: linux-amd64
             os: ubuntu-24.04
             goarch: amd64

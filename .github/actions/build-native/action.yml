@@ -13,6 +13,13 @@ inputs:
       dylibs.
     required: false
     default: ""
+  msvc-arch:
+    description: >
+      Target for ilammy/msvc-dev-cmd on Windows. x64 builds for the runner;
+      amd64_arm64 selects the x64-hosted ARM64 cross toolchain, which is how the
+      arm64 DLL is produced without an arm64 build runner.
+    required: false
+    default: x64
 
 runs:
   using: composite
@@ -20,6 +27,11 @@ runs:
     - name: Windows - setup MSVC
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
+      with:
+        # A caller that threads an unset matrix value through lands here as the
+        # empty string, which would override the default rather than fall back
+        # to it.
+        arch: ${{ inputs.msvc-arch || 'x64' }}
 
     - name: Windows - CMake configure + build
       if: runner.os == 'Windows'
@@ -34,6 +46,24 @@ runs:
       run: |
         mkdir -p native/libs
         cp lib/build/golibjpeg.dll "native/libs/${{ inputs.embed-name }}"
+
+    # Same reasoning as the macOS check below: a DLL built for the wrong machine
+    # loads nowhere, and nothing downstream would notice.
+    - name: Windows - verify the architecture
+      if: runner.os == 'Windows'
+      shell: bash
+      env:
+        MSVC_ARCH: ${{ inputs.msvc-arch }}
+      run: |
+        set -euo pipefail
+        lib="native/libs/${{ inputs.embed-name }}"
+        # // rather than / so MSYS does not rewrite the switch as a path.
+        dumpbin //HEADERS "$lib" | grep -i "machine ("
+        case "$MSVC_ARCH" in
+          *arm64) want="ARM64" ;;
+          *)      want="x64" ;;
+        esac
+        dumpbin //HEADERS "$lib" | grep -i "machine (" | grep -qi "$want"
 
     - name: Unix - CMake configure + build
       if: runner.os != 'Windows'
