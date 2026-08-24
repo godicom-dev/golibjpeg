@@ -1,11 +1,11 @@
 package native
 
 import (
+	"fmt"
 	"os"
 	"runtime"
+	"sync"
 	"unsafe"
-
-	"github.com/ebitengine/purego"
 )
 
 var (
@@ -17,9 +17,50 @@ var (
 		output *unsafe.Pointer, outputLen *int32) int32
 	getParamsFn func(data unsafe.Pointer, dataLen int32,
 		width, height, components, precision *int32) int32
-	freeFn func(p unsafe.Pointer)
+	freeFn      func(p unsafe.Pointer)
 	lastErrorFn func() uintptr
 )
+
+// ensureLoaded extracts the embedded library and binds its entry points, once
+// per process, and reports the same result to every later caller.
+//
+// The work is deferred to the first call instead of running in init() so that
+// failure is an error the caller can handle rather than a panic during package
+// initialisation. Two failures are worth handling: a platform with no prebuilt
+// library, and a host whose temporary directory is read-only or mounted noexec.
+// Importing this package must stay safe in both cases, because anything that
+// imports golibjpeg — godicom's pixels package, for one — would otherwise fail
+// to start even when it only ever touches uncompressed pixel data.
+var ensureLoaded = sync.OnceValue(loadNative)
+
+func loadNative() (err error) {
+	defer func() {
+		// bindSymbols panics on a missing required symbol, which would otherwise
+		// surface from whichever call happened to be the first.
+		if r := recover(); r != nil {
+			err = fmt.Errorf("golibjpeg: binding the native library failed: %v", r)
+		}
+	}()
+
+	if len(libData) == 0 {
+		return fmt.Errorf("%w (%s/%s)", ErrUnsupportedPlatform, runtime.GOOS, runtime.GOARCH)
+	}
+
+	f, err := os.CreateTemp("", "golibjpeg-*."+libExt())
+	if err != nil {
+		return fmt.Errorf("golibjpeg: creating a temp file for the native library failed: %w", err)
+	}
+	path := f.Name()
+	_ = f.Close()
+
+	handle, err := extractAndLoad(path)
+	if err != nil {
+		return fmt.Errorf("golibjpeg: loading the native library failed: %w", err)
+	}
+
+	bindSymbols(handle)
+	return nil
+}
 
 func extractAndLoad(path string) (uintptr, error) {
 	if err := os.WriteFile(path, libData, 0o755); err != nil {
@@ -34,31 +75,6 @@ func extractAndLoad(path string) (uintptr, error) {
 		_ = os.Remove(path)
 	}
 	return handle, nil
-}
-
-func init() {
-	f, err := os.CreateTemp("", "golibjpeg-*."+libExt())
-	if err != nil {
-		panic("golibjpeg: failed to create temp file: " + err.Error())
-	}
-	path := f.Name()
-	_ = f.Close()
-	handle, err := extractAndLoad(path)
-	if err != nil {
-		panic("golibjpeg: failed to load native library: " + err.Error())
-	}
-	purego.RegisterLibFunc(&decodeFn, uintptr(handle), "golibjpeg_decode")
-	purego.RegisterLibFunc(&encodeFn, uintptr(handle), "golibjpeg_encode")
-	purego.RegisterLibFunc(&getParamsFn, uintptr(handle), "golibjpeg_get_parameters")
-	purego.RegisterLibFunc(&freeFn, uintptr(handle), "golibjpeg_free")
-	registerOptionalLibFunc(uintptr(handle), "golibjpeg_last_error", &lastErrorFn)
-}
-
-func registerOptionalLibFunc(handle uintptr, name string, fn any) {
-	defer func() {
-		recover()
-	}()
-	purego.RegisterLibFunc(fn, handle, name)
 }
 
 func libExt() string {

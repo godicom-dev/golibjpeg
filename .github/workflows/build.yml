@@ -9,6 +9,36 @@ on:
   workflow_dispatch:
 
 jobs:
+  cross-build:
+    name: cross-build (no prebuilt library)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: false
+
+      # A platform with no prebuilt library still has to compile: decoding and
+      # encoding return ErrUnsupportedPlatform at run time, so importing this
+      # module stays safe everywhere Go and purego build. Without this job the
+      # guarantee holds only until someone puts a symbol in the wrong file.
+      - name: Build where no prebuilt library exists
+        run: |
+          set -euo pipefail
+          for target in \
+            darwin/amd64 windows/arm64 windows/386 \
+            linux/386 linux/arm linux/riscv64 linux/ppc64le \
+            js/wasm wasip1/wasm; do
+            echo "== $target"
+            GOOS="${target%/*}" GOARCH="${target#*/}" CGO_ENABLED=0 go build ./...
+          done
+
   build-native:
     name: build (${{ matrix.name }})
     strategy:
