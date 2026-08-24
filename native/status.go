@@ -1,33 +1,16 @@
 package native
 
-import "unsafe"
-
+// lastErrorDetail reports the message the last failing C call left behind, or ""
+// when the library predates the symbol and lastErrorFn was never bound.
+//
+// purego converts the C char* to a Go string itself — including the NULL case —
+// so nothing here has to touch unsafe. Doing that conversion by hand is what
+// made `go vet ./...` flag this file: turning the returned uintptr into an
+// unsafe.Pointer is the pattern vet rejects, and vet cannot tell that this
+// particular address belongs to the loaded library rather than the Go heap.
 func lastErrorDetail() string {
 	if lastErrorFn == nil {
 		return ""
 	}
-	ptr := lastErrorFn()
-	if ptr == 0 {
-		return ""
-	}
-	return string(cString(ptr))
-}
-
-func cString(ptr uintptr) []byte {
-	if ptr == 0 {
-		return nil
-	}
-	var length int
-	for {
-		if *(*byte)(unsafe.Pointer(ptr + uintptr(length))) == 0 {
-			break
-		}
-		length++
-	}
-	if length == 0 {
-		return nil
-	}
-	buf := make([]byte, length)
-	copy(buf, unsafe.Slice((*byte)(unsafe.Pointer(ptr)), length))
-	return buf
+	return lastErrorFn()
 }

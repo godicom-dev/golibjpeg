@@ -13,11 +13,11 @@ const (
 
 // PhotometricInterpretation values supported by DecodePixelData (v1).
 const (
-	PhotometricMonochrome1  = "MONOCHROME1"
-	PhotometricMonochrome2  = "MONOCHROME2"
-	PhotometricRGB          = "RGB"
-	PhotometricYBRFull      = "YBR_FULL"
-	PhotometricYBRFull422   = "YBR_FULL_422"
+	PhotometricMonochrome1 = "MONOCHROME1"
+	PhotometricMonochrome2 = "MONOCHROME2"
+	PhotometricRGB         = "RGB"
+	PhotometricYBRFull     = "YBR_FULL"
+	PhotometricYBRFull422  = "YBR_FULL_422"
 )
 
 var photometricColourTransform = map[string]ColourTransform{

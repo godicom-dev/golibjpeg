@@ -121,7 +121,7 @@ func TestReferenceDecodeJPG(t *testing.T) {
 }
 
 func TestReferenceGetParametersA1Path(t *testing.T) {
-	path := testdata.JPEGPath("10918", "p1", "A1.JPG")
+	path := testdata.RequireJPEGPath(t, "10918", "p1", "A1.JPG")
 	params, err := golibjpeg.GetImageParameters(path)
 	if err != nil {
 		t.Fatalf("GetImageParameters(path): %v", err)

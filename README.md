@@ -164,6 +164,34 @@ the table — `js/wasm` and `wasip1/wasm` among them — so this stays true. Loa
 is lazy and never panics: a read-only or `noexec` `TMPDIR` also surfaces as an
 error from the first call.
 
+### What each platform costs your binary
+
+The six libraries together are about 10 MB, but a binary only ever carries the
+one it can load — the `//go:embed` directives are behind per-platform build
+tags, so the other five are not compiled in:
+
+```
+$ GOOS=windows GOARCH=arm64 go build -o app .
+$ GOOS=linux   GOARCH=386   go build -o app .   # off the matrix: nothing embedded
+```
+
+| target | embedded | added to the binary |
+|--------|----------|---------------------|
+| `linux/amd64` | `golibjpeg_linux_amd64.so` | ~2.2 MB |
+| `linux/arm64` | `golibjpeg_linux_arm64.so` | ~2.1 MB |
+| `darwin/amd64` | `golibjpeg_darwin_amd64.dylib` | ~1.5 MB |
+| `darwin/arm64` | `golibjpeg_darwin_arm64.dylib` | ~1.4 MB |
+| `windows/amd64` | `golibjpeg_amd64.dll` | ~1.5 MB |
+| `windows/arm64` | `golibjpeg_arm64.dll` | ~1.4 MB |
+| anything else | — | nothing |
+
+The `checks` CI job asserts that set per platform with `go list -f
+'{{.EmbedFiles}}'`, because a `libs/*` glob or a forgotten build tag would put
+all six into every binary and nothing else would notice.
+
+`go get` does download all six, since they live in one module — that cost is
+paid once in the module cache, not per build and not per user binary.
+
 ## Dependencies
 
 - [ebitengine/purego](https://github.com/ebitengine/purego) – FFI without CGO
@@ -193,8 +221,9 @@ make build-native
 
 ### CI workflows
 
-`build.yml` runs **cross-build** — compile for 7 platforms with no prebuilt
-library — on its own, plus this chain in order:
+`build.yml` runs two jobs on their own — **checks** (gofmt, `go vet`, and the
+one-embedded-library-per-platform assertion) and **cross-build** (compile for 7
+platforms with no prebuilt library) — plus this chain in order:
 
 1. **build-native** — build shared library on 6 platforms, upload artifacts  
 2. **commit-native** — on push to `main`, write artifacts into `native/libs/` and commit  

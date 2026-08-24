@@ -22,8 +22,8 @@ type Params struct {
 	Precision  int
 }
 
-func (p *Params) Rows() int       { return p.Height }
-func (p *Params) Columns() int    { return p.Width }
+func (p *Params) Rows() int         { return p.Height }
+func (p *Params) Columns() int      { return p.Width }
 func (p *Params) NrComponents() int { return p.Components }
 
 func (img *Image) BytesPerSample() int {
