@@ -143,7 +143,7 @@ fmt.Printf("%dx%d, %d components, precision %d\n",
 
 | OS      | amd64 | arm64 |
 |---------|-------|-------|
-| Windows | ✓     |       |
+| Windows | ✓     | ✓     |
 | macOS   | ✓     | ✓     |
 | Linux   | ✓     | ✓     |
 
@@ -193,10 +193,10 @@ make build-native
 
 ### CI workflows
 
-`build.yml` runs **cross-build** — compile for 8 platforms with no prebuilt
+`build.yml` runs **cross-build** — compile for 7 platforms with no prebuilt
 library — on its own, plus this chain in order:
 
-1. **build-native** — build shared library on 5 platforms, upload artifacts  
+1. **build-native** — build shared library on 6 platforms, upload artifacts  
 2. **commit-native** — on push to `main`, write artifacts into `native/libs/` and commit  
 3. **test** — download artifact per platform, then `go test`  
 4. **release** — on `v*` tags, attach libraries to GitHub Release  
