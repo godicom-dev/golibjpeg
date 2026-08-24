@@ -49,6 +49,10 @@ func statusCode(status string) (int, bool) {
 }
 
 // StatusError mirrors pylibjpeg-libjpeg RuntimeError messages.
+//
+// Op already carries its own parentheses — "Decode()", "GetJPEGParameters()" —
+// matching the names pylibjpeg puts in the same position, so the format strings
+// below must not add another pair.
 type StatusError struct {
 	Op     string
 	Code   int
@@ -63,23 +67,23 @@ func (e *StatusError) Error() string {
 	if known, ok := libjpegErrorMessages[e.Code]; ok {
 		if e.Detail != "" {
 			return fmt.Sprintf(
-				"libjpeg error code '%d' returned from %s(): %s - %s",
+				"libjpeg error code '%d' returned from %s: %s - %s",
 				e.Code, e.Op, known, e.Detail,
 			)
 		}
 		return fmt.Sprintf(
-			"libjpeg error code '%d' returned from %s(): %s",
+			"libjpeg error code '%d' returned from %s: %s",
 			e.Code, e.Op, known,
 		)
 	}
 
 	if e.Detail != "" {
 		return fmt.Sprintf(
-			"Unknown error code '%d' returned from %s(): %s",
+			"Unknown error code '%d' returned from %s: %s",
 			e.Code, e.Op, e.Detail,
 		)
 	}
-	return fmt.Sprintf("Unknown error code '%d' returned from %s()", e.Code, e.Op)
+	return fmt.Sprintf("Unknown error code '%d' returned from %s", e.Code, e.Op)
 }
 
 var libjpegErrorMessages = map[int]string{

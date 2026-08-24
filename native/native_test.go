@@ -101,3 +101,48 @@ func TestLoadResultIsCached(t *testing.T) {
 		t.Errorf("ensureLoaded() returned a new error value on the second call: %v then %v", first, second)
 	}
 }
+
+// The detail half of a decode failure comes from a separate C symbol bound as
+// func() string, and nothing else in the suite reads it — so a rename, a
+// signature change, or a library built without the symbol would all go
+// unnoticed while the exported behaviour quietly lost half its message.
+//
+// The input is a well-formed JFIF header truncated to an immediate EOI: past the
+// magic check, so the failure happens inside libjpeg with something to say about
+// it, rather than being rejected up front.
+func TestDecodeErrorCarriesTheDetailFromTheLibrary(t *testing.T) {
+	truncated := []byte{
+		0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F', 0x00,
+		0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xFF, 0xD9,
+	}
+
+	_, err := Decode(truncated, CTNone)
+	if err == nil {
+		t.Fatal("Decode accepted a truncated JPEG")
+	}
+
+	var status *StatusError
+	if !errors.As(err, &status) {
+		t.Fatalf("Decode returned %T (%v), want *StatusError", err, err)
+	}
+	if status.Detail == "" {
+		t.Fatalf("StatusError has no Detail, so golibjpeg_last_error did not bind: %v", err)
+	}
+
+	// pylibjpeg-libjpeg raises
+	//   libjpeg error code '-1038' returned from Decode(): <known> - <detail>
+	// so Op supplies the "Decode()" and the format string must not add a second
+	// pair of parentheses.
+	msg := err.Error()
+	for _, want := range []string{
+		"returned from Decode(): ",
+		" - " + status.Detail,
+	} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("error %q does not contain %q", msg, want)
+		}
+	}
+	if strings.Contains(msg, "()()") {
+		t.Errorf("error %q doubles the parentheses after the operation name", msg)
+	}
+}

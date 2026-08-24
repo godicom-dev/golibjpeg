@@ -9,6 +9,79 @@ on:
   workflow_dispatch:
 
 jobs:
+  checks:
+    name: checks (fmt, vet, embed)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: false
+
+      - name: gofmt
+        run: |
+          set -euo pipefail
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "not gofmt-clean:"
+            echo "$out"
+            gofmt -d .
+            exit 1
+          fi
+
+      # `go test` runs a subset of vet, and unsafeptr is not in it, which is how a
+      # vet failure sat in this repo under a green CI.
+      - name: go vet
+        run: go vet ./...
+
+      # A program that imports golibjpeg must carry exactly one native library:
+      # the one for the platform it was built for. Per-platform build tags on the
+      # //go:embed files are what make that true, and the invariant is one
+      # careless `libs/*` glob or one missing build tag away from putting all six
+      # libraries into every binary — around 10 MB of libraries where 1.4 MB
+      # belongs. go list reports the embed set for a target without building it,
+      # so this is checkable directly rather than by weighing binaries.
+      - name: One embedded library per platform
+        run: |
+          set -euo pipefail
+          fail=0
+          expect() {
+            local goos="$1" goarch="$2" want="$3"
+            # native/libs/ is filled in by commit-native on main, so a PR that
+            # adds a platform names a library the branch does not have yet.
+            # Report that as pending instead of broken; every platform whose
+            # library is present is still checked.
+            local file="native/$(printf '%s' "$want" | tr -d '[]')"
+            if [ "$want" != "[]" ] && [ ! -f "$file" ]; then
+              printf '%-14s pending (%s not committed yet)\n' "$goos/$goarch" "$file"
+              return 0
+            fi
+            local got
+            got=$(GOOS="$goos" GOARCH="$goarch" go list -f '{{.EmbedFiles}}' ./native)
+            printf '%-14s %s\n' "$goos/$goarch" "$got"
+            if [ "$got" != "$want" ]; then
+              printf '%-14s WANT %s\n' "" "$want"
+              fail=1
+            fi
+          }
+          expect linux   amd64 '[libs/golibjpeg_linux_amd64.so]'
+          expect linux   arm64 '[libs/golibjpeg_linux_arm64.so]'
+          expect darwin  amd64 '[libs/golibjpeg_darwin_amd64.dylib]'
+          expect darwin  arm64 '[libs/golibjpeg_darwin_arm64.dylib]'
+          expect windows amd64 '[libs/golibjpeg_amd64.dll]'
+          expect windows arm64 '[libs/golibjpeg_arm64.dll]'
+          # Nothing embedded off the matrix, so those binaries pay nothing.
+          expect linux   386   '[]'
+          expect windows 386   '[]'
+          expect js      wasm  '[]'
+          exit $fail
+
   cross-build:
     name: cross-build (no prebuilt library)
     runs-on: ubuntu-24.04

@@ -17,8 +17,10 @@ var (
 		output *unsafe.Pointer, outputLen *int32) int32
 	getParamsFn func(data unsafe.Pointer, dataLen int32,
 		width, height, components, precision *int32) int32
-	freeFn      func(p unsafe.Pointer)
-	lastErrorFn func() uintptr
+	freeFn func(p unsafe.Pointer)
+	// Bound as func() string rather than func() uintptr so purego does the
+	// char*-to-string conversion; see lastErrorDetail.
+	lastErrorFn func() string
 )
 
 // ensureLoaded extracts the embedded library and binds its entry points, once
